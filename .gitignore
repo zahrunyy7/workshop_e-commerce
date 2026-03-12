@@ -1,0 +1,17 @@
+# Folder hasil compile (Penyebab error tadi)
+/build/
+
+# Folder internal Dart & Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+
+# File konfigurasi IDE
+.idea/
+.vscode/
+*.iml
+
+# File log dan sampah sistem
+*.log
+.DS_Store
