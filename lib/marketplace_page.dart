@@ -1,21 +1,6 @@
 import 'package:flutter/material.dart';
-
-class Jewelry {
-  final String nama, deskripsi, kategori, gambar;
-  final int harga;
-  final double rating;
-  int jumlah;
-
-  Jewelry({
-    required this.nama,
-    required this.harga,
-    required this.rating,
-    required this.deskripsi,
-    required this.kategori,
-    required this.gambar,
-    this.jumlah = 0,
-  });
-}
+import 'jewelry_model.dart'; // <--- WAJIB ADA INI
+import 'product_detail_page.dart';
 
 class JewelryMarketplace extends StatefulWidget {
   final List<Jewelry> items;
@@ -46,9 +31,13 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
     "Gelang",
   ];
 
+  // Warna Konsisten Luxe Jewels
+  final Color goldColor = const Color(0xFFC5A059);
+  final Color brownColor = const Color(0xFF8E6E53);
+
   @override
   Widget build(BuildContext context) {
-    // Filter produk berdasarkan kategori yang dipilih
+    // Filter produk dinamis
     final filteredItems = widget.items.where((item) {
       return kategoriTerpilih == "Semua" || item.kategori == kategoriTerpilih;
     }).toList();
@@ -56,12 +45,12 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F4F0),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "LUXE JEWELS",
           style: TextStyle(
             letterSpacing: 4,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF8E6E53),
+            color: brownColor,
           ),
         ),
         centerTitle: true,
@@ -70,7 +59,7 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
       ),
       body: Column(
         children: [
-          // BAGIAN KATEGORI (Sudah Muncul Lagi)
+          // Filter Kategori
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -87,12 +76,10 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
                     margin: const EdgeInsets.only(right: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFFC5A059)
-                          : Colors.white,
+                      color: isSelected ? goldColor : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFFC5A059).withOpacity(0.3),
+                        color: goldColor.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Center(
@@ -110,20 +97,25 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
             ),
           ),
 
-          // DAFTAR PRODUK
+          // Daftar Barang Marketplace
           Expanded(
             child: ListView.builder(
               itemCount: filteredItems.length,
               padding: const EdgeInsets.all(15),
               itemBuilder: (context, index) {
-                final item = filteredItems[index];
+                final item = filteredItems[index]; // Data per item
+
                 return GestureDetector(
                   onTap: () {
-                    // BIAR BISA DIKLIK LIHAT DESKRIPSI
+                    // SEKARANG SUDAH NYAMBUNG: Ambil data dari variabel 'item'
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => JewelryDetailPage(jewelry: item),
+                        builder: (context) => ProductDetailPage(
+                          title: item.nama,
+                          price: "Rp ${item.harga}",
+                          imagePath: item.gambar,
+                        ),
                       ),
                     );
                   },
@@ -135,7 +127,7 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                         ),
                       ],
@@ -149,6 +141,10 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
+                            errorBuilder: (c, e, s) => const Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 15),
@@ -172,15 +168,14 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
                               ),
                               Text(
                                 "Rp ${item.harga}",
-                                style: const TextStyle(
-                                  color: Color(0xFFC5A059),
+                                style: TextStyle(
+                                  color: goldColor,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        // TOMBOL TAMBAH (+)
                         _buildCounter(item),
                       ],
                     ),
@@ -218,77 +213,6 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
           }),
         ),
       ],
-    );
-  }
-}
-
-// HALAMAN DETAIL (Untuk melihat deskripsi)
-class JewelryDetailPage extends StatelessWidget {
-  final Jewelry jewelry;
-  const JewelryDetailPage({super.key, required this.jewelry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(jewelry.nama),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Image.network(
-              jewelry.gambar,
-              width: double.infinity,
-              height: 350,
-              fit: BoxFit.cover,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(25),
-              child: Column(
-                children: [
-                  Text(
-                    jewelry.nama,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 20),
-                      Text(" ${jewelry.rating} | ${jewelry.kategori}"),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    jewelry.deskripsi,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    "Rp ${jewelry.harga}",
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFC5A059),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

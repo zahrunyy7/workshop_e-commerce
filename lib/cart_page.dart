@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'marketplace_page.dart';
+import 'jewelry_model.dart';
 
 class CartPage extends StatelessWidget {
   final List<Jewelry> items;

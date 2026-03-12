@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'marketplace_page.dart';
 import 'profile_page.dart';
 import 'cart_page.dart';
+import 'jewelry_model.dart';
 
 class MainNavigation extends StatefulWidget {
   final String nama, email, alamat, telepon;
