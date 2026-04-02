@@ -1,91 +1,145 @@
 import 'package:flutter/material.dart';
-import 'checkout_page.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart'; // Tambahkan ini untuk format uang
+import 'product_provider.dart';
+import 'jewelry_model.dart';
 
 class ProductDetailPage extends StatelessWidget {
-  final String title;
-  final String price;
-  final String imagePath;
+  final Jewelry product;
 
-  const ProductDetailPage({
-    super.key,
-    required this.title,
-    required this.price,
-    required this.imagePath,
-  });
+  const ProductDetailPage({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
-    // WARNA TEMA LUXE JEWELS (Tanpa Navy!)
-    const Color goldColor = Color(0xFFC5A059); // Emas dari icon diamond
-    const Color brownColor = Color(0xFF8E6E53); // Cokelat dari teks judul
+    const Color goldColor = Color(0xFFC5A059);
+    const Color brownColor = Color(0xFF8E6E53);
+
+    // Format Rupiah
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    // Akses Provider tanpa listen karena hanya menjalankan fungsi
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: brownColor,
+        title: const Text(
+          "DETAIL PRODUK",
+          style: TextStyle(
+            fontSize: 14,
+            letterSpacing: 2,
             fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: brownColor),
+        foregroundColor: brownColor,
       ),
       body: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 350,
-              width: double.infinity,
-              color: Colors.grey[100],
-              child: Image.network(
-                imagePath,
-                fit: BoxFit.cover,
-                // Loading indicator warna emas
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(color: goldColor),
-                  );
-                },
-                // Kalau link foto kamu masih gagal, dia muncul icon ini
-                errorBuilder: (context, error, stackTrace) => const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                      Text(
-                        "Link foto bermasalah",
-                        style: TextStyle(color: Colors.grey),
+            // Area Gambar dengan Badge Rating
+            Stack(
+              children: [
+                Container(
+                  height: 400,
+                  width: double.infinity,
+                  decoration: BoxDecoration(color: Colors.grey[100]),
+                  child: Image.network(
+                    product.gambar,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        size: 50,
+                        color: Colors.grey,
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 18),
+                        Text(
+                          " ${product.rating}",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
+
             Padding(
               padding: const EdgeInsets.all(25.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  // Kategori & Harga
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        product.kategori.toUpperCase(),
+                        style: const TextStyle(
+                          color: goldColor,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      Text(
+                        currencyFormat.format(product.harga),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          color: brownColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
+
+                  // Nama Produk
                   Text(
-                    price,
+                    product.nama,
                     style: const TextStyle(
-                      fontSize: 22,
-                      color: goldColor,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 30),
+
+                  const Divider(height: 40, thickness: 1),
+
+                  // Deskripsi
                   const Text(
                     "DESKRIPSI",
                     style: TextStyle(
@@ -96,44 +150,58 @@ class ProductDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    "Koleksi eksklusif dari Luxe Jewels yang dirancang khusus dengan material premium untuk memberikan kesan elegan dan mewah.",
+                  Text(
+                    product
+                        .deskripsi, // Mengambil data deskripsi asli dari Firebase
                     style: TextStyle(
                       fontSize: 15,
-                      color: Colors.grey,
+                      color: Colors.grey[600],
                       height: 1.6,
                     ),
                   ),
-                  const SizedBox(height: 50),
+
+                  const SizedBox(height: 40),
+
+                  // Tombol Tambah ke Keranjang
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            brownColor, // SAMA DENGAN TOMBOL LOGIN KAMU
+                        backgroundColor: brownColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                         elevation: 0,
                       ),
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CheckoutPage(),
+                        productProvider.addToCart(product);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "${product.nama} masuk ke keranjang!",
+                            ),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: brownColor,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         );
                       },
                       child: const Text(
-                        "BELI SEKARANG",
+                        "TAMBAH KE KERANJANG",
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart'; // 1. Tambahkan import Firebase
-import 'firebase_options.dart'; // 2. Tambahkan import file hasil generate tadi
-
 import 'product_provider.dart';
-import 'main_navigation.dart';
 import 'splash_screen.dart';
+import 'firebase_options.dart'; // Sudah ditambah titik koma (;)
 
-// 3. Ubah main menjadi Future<void> dan tambahkan async
 void main() async {
-  // 4. Baris ini WAJIB ada jika menggunakan Firebase di fungsi main
+  // 1. Wajib ada ini sebelum Firebase
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 5. Inisialisasi Firebase
+  // 2. Tambahkan options agar Flutter tahu konfigurasi project kamu
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ProductProvider(),
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => ProductProvider())],
       child: const MyApp(),
     ),
   );
@@ -31,7 +28,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Luxe Jewels',
-      theme: ThemeData(primarySwatch: Colors.amber, fontFamily: 'Serif'),
+      theme: ThemeData(
+        // Tips: Pakai warna Navy biar cocok sama branding Luxe Jewels kamu
+        primaryColor: const Color(0xFF000080),
+        useMaterial3: true,
+      ),
       home: const SplashScreen(),
     );
   }

@@ -1,27 +1,18 @@
 import 'package:flutter/material.dart';
-import 'jewelry_model.dart'; // <--- WAJIB ADA INI
-import 'product_detail_page.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'product_provider.dart';
+import 'jewelry_model.dart';
+import 'product_detail_page.dart'; // Sesuaikan dengan nama file detail page kamu
 
-class JewelryMarketplace extends StatefulWidget {
-  final List<Jewelry> items;
-  final VoidCallback onUpdate;
-  final String nama, email, alamat, telepon;
-
-  const JewelryMarketplace({
-    super.key,
-    required this.items,
-    required this.onUpdate,
-    required this.nama,
-    required this.email,
-    required this.alamat,
-    required this.telepon,
-  });
+class MarketplacePage extends StatefulWidget {
+  const MarketplacePage({super.key});
 
   @override
-  State<JewelryMarketplace> createState() => _JewelryMarketplaceState();
+  State<MarketplacePage> createState() => _MarketplacePageState();
 }
 
-class _JewelryMarketplaceState extends State<JewelryMarketplace> {
+class _MarketplacePageState extends State<MarketplacePage> {
   String kategoriTerpilih = "Semua";
   final List<String> daftarKategori = [
     "Semua",
@@ -29,28 +20,27 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
     "Kalung",
     "Anting",
     "Gelang",
+    "Lainnya",
   ];
-
-  // Warna Konsisten Luxe Jewels
-  final Color goldColor = const Color(0xFFC5A059);
-  final Color brownColor = const Color(0xFF8E6E53);
 
   @override
   Widget build(BuildContext context) {
-    // Filter produk dinamis
-    final filteredItems = widget.items.where((item) {
-      return kategoriTerpilih == "Semua" || item.kategori == kategoriTerpilih;
-    }).toList();
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    final productProvider = Provider.of<ProductProvider>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F4F0),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "LUXE JEWELS",
           style: TextStyle(
             letterSpacing: 4,
             fontWeight: FontWeight.bold,
-            color: brownColor,
+            color: Color(0xFF8E6E53),
           ),
         ),
         centerTitle: true,
@@ -59,7 +49,7 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
       ),
       body: Column(
         children: [
-          // Filter Kategori
+          // KATEGORI
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -76,17 +66,19 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
                     margin: const EdgeInsets.only(right: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
-                      color: isSelected ? goldColor : Colors.white,
+                      color: isSelected
+                          ? const Color(0xFFC5A059)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: goldColor.withValues(alpha: 0.3),
+                        color: const Color(0xFFC5A059).withOpacity(0.3),
                       ),
                     ),
                     child: Center(
                       child: Text(
                         daftarKategori[index],
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black,
+                          color: isSelected ? Colors.white : Colors.black54,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -97,89 +89,48 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
             ),
           ),
 
-          // Daftar Barang Marketplace
+          // DAFTAR PRODUK (STREAM DARI FIREBASE)
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredItems.length,
-              padding: const EdgeInsets.all(15),
-              itemBuilder: (context, index) {
-                final item = filteredItems[index]; // Data per item
+            child: StreamBuilder<List<Jewelry>>(
+              stream: productProvider
+                  .getProductsStream(), // Ambil data real-time
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFC5A059)),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text("Produk belum tersedia di Firebase"),
+                  );
+                }
 
-                return GestureDetector(
-                  onTap: () {
-                    // SEKARANG SUDAH NYAMBUNG: Ambil data dari variabel 'item'
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProductDetailPage(
-                          title: item.nama,
-                          price: "Rp ${item.harga}",
-                          imagePath: item.gambar,
+                final filteredItems = snapshot.data!.where((item) {
+                  return kategoriTerpilih == "Semua" ||
+                      item.kategori == kategoriTerpilih;
+                }).toList();
+
+                return ListView.builder(
+                  itemCount: filteredItems.length,
+                  padding: const EdgeInsets.all(15),
+                  itemBuilder: (context, index) {
+                    final item = filteredItems[index];
+                    return GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ProductDetailPage(product: item),
                         ),
+                      ),
+                      child: _buildProductCard(
+                        item,
+                        currencyFormat,
+                        productProvider,
                       ),
                     );
                   },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: Image.network(
-                            item.gambar,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (c, e, s) => const Icon(
-                              Icons.broken_image,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.nama,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              Text(
-                                item.kategori,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                "Rp ${item.harga}",
-                                style: TextStyle(
-                                  color: goldColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _buildCounter(item),
-                      ],
-                    ),
-                  ),
                 );
               },
             ),
@@ -189,30 +140,82 @@ class _JewelryMarketplaceState extends State<JewelryMarketplace> {
     );
   }
 
-  Widget _buildCounter(Jewelry item) {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
-          onPressed: () => setState(() {
-            if (item.jumlah > 0) {
-              item.jumlah--;
-              widget.onUpdate();
-            }
-          }),
-        ),
-        Text(
-          "${item.jumlah}",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        IconButton(
-          icon: const Icon(Icons.add_circle, color: Color(0xFFC5A059)),
-          onPressed: () => setState(() {
-            item.jumlah++;
-            widget.onUpdate();
-          }),
-        ),
-      ],
+  Widget _buildProductCard(
+    Jewelry item,
+    NumberFormat formatter,
+    ProductProvider provider,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.network(
+              item.gambar,
+              width: 90,
+              height: 90,
+              fit: BoxFit.cover,
+              errorBuilder: (context, e, s) => Container(
+                width: 90,
+                height: 90,
+                color: Colors.grey[200],
+                child: const Icon(Icons.broken_image),
+              ),
+            ),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.nama,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFF8E6E53),
+                  ),
+                ),
+                Text(
+                  item.kategori,
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  formatter.format(item.harga),
+                  style: const TextStyle(
+                    color: Color(0xFFC5A059),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_shopping_cart, color: Color(0xFFC5A059)),
+            onPressed: () {
+              provider.addToCart(item);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("${item.nama} ditambah ke keranjang")),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

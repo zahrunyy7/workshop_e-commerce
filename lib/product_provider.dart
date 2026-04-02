@@ -1,78 +1,100 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'jewelry_model.dart';
 
 class ProductProvider with ChangeNotifier {
-  final List<Jewelry> _items = [
-    Jewelry(
-      nama: "Diamond Gold Ring",
-      harga: 12500000,
-      rating: 4.9,
-      kategori: "Cincin",
-      gambar:
-          "https://i.pinimg.com/1200x/77/13/7b/77137b2b26f041eb29ea6a07993b23fb.jpg",
-      deskripsi: "Cincin emas 18k dengan berlian murni.",
-    ),
-    Jewelry(
-      nama: "Ocean Blue Necklace",
-      harga: 8500000,
-      deskripsi: "Kalung perak dengan liontin batu sapphire biru laut.",
-      rating: 4.8,
-      kategori: "Kalung",
-      gambar:
-          "https://i.pinimg.com/736x/58/4f/c6/584fc67482f08d28e1dbc96a0d160189.jpg",
-    ),
-    Jewelry(
-      nama: "Rose Gold Bracelet",
-      harga: 5200000,
-      deskripsi: "Gelang rose gold minimalis untuk tampilan sehari-hari.",
-      rating: 4.7,
-      kategori: "Gelang",
-      gambar:
-          "https://i.pinimg.com/1200x/bd/17/6c/bd176cab3d866736b79a84d2ef83340a.jpg",
-    ),
-    Jewelry(
-      nama: "Crystal Earrings",
-      harga: 3500000,
-      deskripsi: "Anting kristal swarovski yang berkilau mewah.",
-      rating: 5.0,
-      kategori: "Anting",
-      gambar:
-          "https://i.pinimg.com/736x/28/dd/37/28dd37100539afa05671a614133bbfb3.jpg",
-    ),
-  ];
+  // 1. DATA KERANJANG (LOKAL)
+  final List<Jewelry> _cartItems = [];
+  List<Jewelry> get cartItems => _cartItems;
 
-  List<Jewelry> get items => [..._items];
+  // 2. REFERENSI FIREBASE
+  final CollectionReference _productCol = FirebaseFirestore.instance.collection(
+    'products',
+  );
 
-  // Tambahkan fungsi ini untuk memperbaiki error di AdminPage
-  void addProduct(Jewelry product) {
-    _items.add(product);
-    notifyListeners(); // Memberitahu Beranda untuk refresh
+  // ==========================================
+  // LOGIKA PRODUK (FIREBASE)
+  // ==========================================
+
+  // Ambil data real-time
+  Stream<List<Jewelry>> getProductsStream() {
+    return _productCol.orderBy('createdAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs.map((doc) => Jewelry.fromFirestore(doc)).toList();
+    });
   }
 
-  // Edit Produk
-  void editProduct(
-    String originalName,
-    String newName,
-    double newPrice,
-    String newDesc,
-  ) {
-    final index = _items.indexWhere((p) => p.nama == originalName);
-    if (index >= 0) {
-      _items[index] = Jewelry(
-        nama: newName,
-        harga: newPrice,
-        deskripsi: newDesc,
-        rating: _items[index].rating,
-        kategori: _items[index].kategori,
-        gambar: _items[index].gambar,
-      );
+  // Tambah Produk ke Firebase
+  Future<void> addProduct(Jewelry product) async {
+    try {
+      await _productCol.add({
+        'nama': product.nama,
+        'harga': product.harga,
+        'deskripsi': product.deskripsi,
+        'gambar': product.gambar,
+        'kategori': product.kategori,
+        'rating': product.rating,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint("Error tambah produk: $e");
+    }
+  }
+
+  // Edit Produk di Firebase
+  Future<void> editProduct(String? id, Jewelry product) async {
+    if (id == null) return;
+    try {
+      await _productCol.doc(id).update({
+        'nama': product.nama,
+        'harga': product.harga,
+        'deskripsi': product.deskripsi,
+        'gambar': product.gambar,
+        'kategori': product.kategori,
+      });
+    } catch (e) {
+      debugPrint("Error edit produk: $e");
+    }
+  }
+
+  // Hapus Produk dari Firebase
+  Future<void> deleteProduct(String id) async {
+    try {
+      await _productCol.doc(id).delete();
+    } catch (e) {
+      debugPrint("Error hapus produk: $e");
+    }
+  }
+
+  // ==========================================
+  // LOGIKA KERANJANG (LOKAL)
+  // ==========================================
+
+  void addToCart(Jewelry product) {
+    _cartItems.add(product);
+    notifyListeners();
+  }
+
+  void removeFromCart(Jewelry product) {
+    _cartItems.remove(product);
+    notifyListeners();
+  }
+
+  void tambahJumlah(Jewelry product) {
+    product.jumlah++;
+    notifyListeners();
+  }
+
+  void kurangJumlah(Jewelry product) {
+    if (product.jumlah > 1) {
+      product.jumlah--;
       notifyListeners();
     }
   }
 
-  // Hapus Produk
-  void deleteProduct(String name) {
-    _items.removeWhere((p) => p.nama == name);
-    notifyListeners(); // Beranda akan langsung kehilangan produk ini
+  // Menghitung total harga di keranjang (Harga x Jumlah)
+  double get totalCartPrice {
+    return _cartItems.fold(0, (sum, item) => sum + (item.harga * item.jumlah));
   }
-}
+} // <--- KURUNG PENUTUP CLASS HARUS DI PALING BAWAH
