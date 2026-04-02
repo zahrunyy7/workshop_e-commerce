@@ -15,7 +15,8 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: '378442523993', // Cari "Web API Key" di atas screenshot tadi
+    apiKey:
+        'AIzaSyDJZG_thI6Omxm9Pj8XUZK0Tx_QobPbkVw', // Cari "Web API Key" di atas screenshot tadi
     appId:
         '1:378442523993:android:884f86b7908172c827d848', // Sudah aku isi sesuai gambarmu
     messagingSenderId: '378442523993', // Ini angka depan dari App ID kamu
