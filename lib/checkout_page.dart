@@ -1,143 +1,115 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Tambahkan ini
-import 'package:intl/intl.dart'; // Tambahkan ini untuk format rupiah
-import 'product_provider.dart'; // Tambahkan ini
-import 'payment_success_page.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'jewelry_model.dart';
+import 'product_provider.dart';
 
-class CheckoutPage extends StatefulWidget {
+class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
 
   @override
-  State<CheckoutPage> createState() => _CheckoutPageState();
-}
-
-class _CheckoutPageState extends State<CheckoutPage> {
-  String selectedPayment = "Transfer Bank";
-  final Color goldColor = const Color(0xFFC5A059);
-
-  @override
   Widget build(BuildContext context) {
-    // AMBIL DATA DARI PROVIDER
-    final productProvider = Provider.of<ProductProvider>(context);
-    final cartItems = productProvider.cartItems;
+    final provider = Provider.of<ProductProvider>(context);
 
-    // HITUNG TOTAL HARGA ASLI
-    double total = cartItems.fold(
-      0.0,
-      (sum, item) => sum + (item.harga * (item.jumlah > 0 ? item.jumlah : 1)),
-    );
-
-    final currencyFormatter = NumberFormat.currency(
+    final formatter = NumberFormat.currency(
       locale: 'id',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          "CHECKOUT",
-          style: TextStyle(
-            color: Colors.black,
-            letterSpacing: 2,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        centerTitle: true,
+        title: const Text("CHECKOUT"),
+        backgroundColor: const Color(0xFFC5A059),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Pilih Metode Pembayaran",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Colors.grey,
+
+      /// 🔥 STREAM BUILDER
+      body: StreamBuilder<List<Jewelry>>(
+        stream: provider.cartStream,
+        builder: (context, snapshot) {
+          final cartItems = snapshot.data ?? [];
+
+          double total = cartItems.fold(
+            0.0,
+            (sum, item) => sum + ((item.harga ?? 0) * (item.jumlah ?? 1)),
+          );
+
+          if (cartItems.isEmpty) {
+            return const Center(child: Text("Keranjang kosong"));
+          }
+
+          return Column(
+            children: [
+              /// LIST PRODUK
+              Expanded(
+                child: ListView.builder(
+                  itemCount: cartItems.length,
+                  itemBuilder: (context, index) {
+                    final item = cartItems[index];
+
+                    return ListTile(
+                      title: Text(item.nama),
+                      subtitle: Text(
+                        "${item.jumlah} x ${formatter.format(item.harga ?? 0)}",
+                      ),
+                      trailing: Text(
+                        formatter.format(
+                          (item.harga ?? 0) * (item.jumlah ?? 1),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            _buildOption("Transfer Bank", Icons.account_balance),
-            _buildOption("E-Wallet", Icons.account_balance_wallet),
-            _buildOption("COD", Icons.local_shipping),
 
-            const Spacer(),
-            const Divider(thickness: 1),
-            const SizedBox(height: 10),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Total Tagihan", style: TextStyle(fontSize: 16)),
-                Text(
-                  currencyFormatter.format(total), // PAKAI TOTAL ASLI
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: goldColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                onPressed: () {
-                  // Tambahkan logika untuk mengosongkan keranjang setelah bayar (opsional)
-                  // productProvider.clearCart();
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PaymentSuccessPage(),
+              /// TOTAL + BUTTON
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -5),
                     ),
-                  );
-                },
-                child: const Text(
-                  "BAYAR SEKARANG",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Total", style: TextStyle(fontSize: 16)),
+                        Text(
+                          formatter.format(total),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC5A059),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      onPressed: () {
+                        /// SIMULASI CHECKOUT
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Checkout berhasil!")),
+                        );
+                      },
+                      child: const Text("BAYAR"),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOption(String title, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F4F0),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: RadioListTile(
-        activeColor: goldColor,
-        value: title,
-        groupValue: selectedPayment,
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        secondary: Icon(icon, color: goldColor),
-        onChanged: (value) =>
-            setState(() => selectedPayment = value.toString()),
+            ],
+          );
+        },
       ),
     );
   }

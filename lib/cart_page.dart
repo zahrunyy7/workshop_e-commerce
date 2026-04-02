@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'jewelry_model.dart';
 import 'product_provider.dart';
-// JANGAN LUPA IMPORT INI
 import 'checkout_page.dart';
 
 class CartPage extends StatelessWidget {
@@ -12,17 +11,11 @@ class CartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productProvider = Provider.of<ProductProvider>(context);
-    final cartItems = productProvider.cartItems;
 
     final currencyFormatter = NumberFormat.currency(
       locale: 'id',
       symbol: 'Rp ',
       decimalDigits: 0,
-    );
-
-    double total = cartItems.fold(
-      0.0,
-      (sum, item) => sum + (item.harga * (item.jumlah > 0 ? item.jumlah : 1)),
     );
 
     return Scaffold(
@@ -40,68 +33,81 @@ class CartPage extends StatelessWidget {
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Color(0xFF8E6E53)),
       ),
-      body: cartItems.isEmpty
-          ? _buildEmptyState()
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(15),
-                    itemCount: cartItems.length,
-                    itemBuilder: (context, index) {
-                      final item = cartItems[index];
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        margin: const EdgeInsets.only(bottom: 15),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: ListTile(
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                item.gambar,
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) =>
-                                    const Icon(Icons.broken_image),
-                              ),
-                            ),
-                            title: Text(
-                              item.nama,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              currencyFormatter.format(item.harga),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.redAccent,
-                              ),
-                              onPressed: () {
-                                productProvider.removeFromCart(item);
-                              },
+
+      /// 🔥 STREAM BUILDER HARUS DI RETURN
+      body: StreamBuilder<List<Jewelry>>(
+        stream: productProvider.cartStream,
+        builder: (context, snapshot) {
+          final cartItems = snapshot.data ?? [];
+
+          double total = cartItems.fold(
+            0.0,
+            (sum, item) => sum + ((item.harga ?? 0) * (item.jumlah ?? 1)),
+          );
+
+          /// ✅ KALAU KOSONG
+          if (cartItems.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          /// ✅ KALAU ADA ISI
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: cartItems.length,
+                  itemBuilder: (context, index) {
+                    final item = cartItems[index];
+
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      margin: const EdgeInsets.only(bottom: 15),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              item.gambar,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) =>
+                                  const Icon(Icons.broken_image),
                             ),
                           ),
+                          title: Text(
+                            item.nama,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            currencyFormatter.format(item.harga ?? 0),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () {
+                              productProvider.removeFromCart(item);
+                            },
+                          ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
-                // Kita masukkan list barang ke checkout jika diperlukan
-                _buildTotalSection(
-                  total,
-                  currencyFormatter,
-                  context,
-                  cartItems,
-                ),
-              ],
-            ),
+              ),
+
+              /// 🔥 TOTAL SECTION
+              _buildTotalSection(total, currencyFormatter, context, cartItems),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -129,7 +135,7 @@ class CartPage extends StatelessWidget {
     double total,
     NumberFormat formatter,
     BuildContext context,
-    List<Jewelry> cartItems, // Tambahkan parameter ini
+    List<Jewelry> cartItems,
   ) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -181,9 +187,8 @@ class CartPage extends StatelessWidget {
                 ),
               ),
               onPressed: cartItems.isEmpty
-                  ? null // Tombol mati kalau kosong
+                  ? null
                   : () {
-                      // PINDAH KE HALAMAN CHECKOUT
                       Navigator.push(
                         context,
                         MaterialPageRoute(
